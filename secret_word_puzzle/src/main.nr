@@ -11,7 +11,7 @@ fn main(secret_word: [u8; WORD_LEN], expected_hash: pub [u8; 32]) {
 #[test]
 fn test_correct_word() {
     let word: [u8; WORD_LEN] = [
-        115u8, 101u8, 99u8, 114u8, 101u8, 116u8, // s e c r e t
+        115u8, 101u8, 99u8, 114u8, 101u8, 116u8, // secret
         0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
     ];
     let expected = blake2s(word);
