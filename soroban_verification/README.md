@@ -1,5 +1,11 @@
 # Soroban UltraHonk Proof Verification
 
+## WORK IN PROGRESS - DO NOT USE!
+
+## WORK IN PROGRESS - DO NOT USE!
+
+## WORK IN PROGRESS - DO NOT USE!
+
 The `soroban_verification` crate exposes a single Soroban contract that consumes the raw
 `vk_fields.json`, `proof`, and `public_inputs` artifacts emitted by `bb` (barretenberg)
 and verifies the proof inside a Soroban transaction using the `ultrahonk_rust_verifier`
