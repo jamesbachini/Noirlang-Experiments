@@ -223,22 +223,81 @@ nargo execute
 [secret_word_puzzle] Witness saved to target/secret_word_puzzle.gz
 ```
 
-## Attempt at verification
+## Verified end-to-end (Noir -> UltraHonk Soroban)
+
+```bash
 cd /mnt/c/code/Noirlang-Experiments/private_limit_orders
+
+# 1) Build circuit + witness
 npm i -D @aztec/bb.js@0.87.0 source-map-support
 nargo compile
-node ./node_modules/@aztec/bb.js/dest/node/main.js write_vk_ultra_honk -b ./target/private_limit_orders.json -o ./target/vk
-node ./node_modules/@aztec/bb.js/dest/node/main.js prove_ultra_honk -b ./target/private_limit_orders.json -w ./target/private_limit_orders.gz -o ./target/proof
-node ./node_modules/@aztec/bb.js/dest/node/main.js proof_as_fields_honk   -p ./target/proof -o ./tmp/test.json
-xxd -p vk | tr -d '\n' > vk.hex
-xxd -p proof | tr -d '\n' > proof.hex
-// input variable found in Verifier.toml
-python3 -c 'print((100).to_bytes(32, "little").hex())'
-cd ../ultrahonk_soroban_contract
-stellar contract build
-stellar contract deploy --source-account james --wasm target/wasm32v1-none/release/ultrahonk_soroban_contract.wasm --network testnet -- --vk_bytes "$(xxd -p ../private_limit_orders/target/vk | tr -d '\n')"
+nargo execute
 
-stellar contract invoke --source-account james --id CBWXFAFVRLPC3QGPXZDQYSASRR7WP3FVWVK3XXCW4JA7QAKK7A5JXHXT --network testnet -- verify_proof --public-inputs "$(python3 -c 'print((100).to_bytes(32, "little").hex())')" --proof-bytes "$(xxd -p ../private_limit_orders/target/proof | tr -d '\n')"
+# 2) Generate UltraHonk (keccak) VK + proof
+node ./node_modules/@aztec/bb.js/dest/node/main.js write_vk_ultra_keccak_honk \
+  -b ./target/private_limit_orders.json \
+  -o ./target/vk.keccak
+
+node ./node_modules/@aztec/bb.js/dest/node/main.js prove_ultra_keccak_honk \
+  -b ./target/private_limit_orders.json \
+  -w ./target/private_limit_orders.gz \
+  -o ./target/proof.with_public_inputs
+
+# 3) Split bb.js proof into:
+#    - target/public_inputs (first N public fields, 32 bytes each)
+#    - target/proof         (remaining bytes, expected by verify_proof)
+PUB_COUNT=$(node -e 'const fs=require("fs"); const j=JSON.parse(fs.readFileSync("target/private_limit_orders.json","utf8")); process.stdout.write(String((j.abi?.parameters||[]).filter(p=>p.visibility==="public").length));')
+PUB_BYTES=$((PUB_COUNT * 32))
+head -c "$PUB_BYTES" target/proof.with_public_inputs > target/public_inputs
+tail -c +$((PUB_BYTES + 1)) target/proof.with_public_inputs > target/proof
+cp target/vk.keccak target/vk
+
+# Optional sanity check: should print 100 in big-endian
+python3 - <<'PY'
+import pathlib
+b = pathlib.Path("target/public_inputs").read_bytes()
+print("public_inputs_len:", len(b))
+print("public_input_be:", int.from_bytes(b, "big"))
+PY
+
+cd ../ultrahonk_soroban_contract
+
+# 4) Build + deploy contract with VK bytes
+stellar contract build --optimize
+CID=$(stellar contract deploy \
+  --source-account james \
+  --wasm target/wasm32v1-none/release/ultrahonk_soroban_contract.wasm \
+  --network testnet \
+  -- \
+  --vk_bytes-file-path ../private_limit_orders/target/vk | tail -n1)
+echo "$CID"
+
+# 5) Verify proof with raw byte files (not hex strings)
+stellar contract invoke \
+  --source-account james \
+  --id "$CID" \
+  --network testnet \
+  --send no \
+  -- \
+  verify_proof \
+  --public_inputs-file-path ../private_limit_orders/target/public_inputs \
+  --proof_bytes-file-path ../private_limit_orders/target/proof
+
+
+## Gives ERRORS
+❌ error: transaction submission failed: TxSorobanInvalid
+
+Changing --send no works and returns null as you'd expect from a Result<(), Error> but meh.
+
+```
+
+
+
+Notes:
+- Use `*_ultra_keccak_honk` commands, not `*_ultra_honk`.
+- `public_inputs` are 32-byte big-endian field values from bb.js output. Do not hand-encode little-endian values.
+- Contract args are `Bytes`; pass files via `--*-file-path` flags.
+- On testnet, `--send yes` may fail for this heavy call with `TxSorobanInvalid`; `--send no` still executes simulation and confirms verification.
 
 
 
