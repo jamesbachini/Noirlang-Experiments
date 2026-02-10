@@ -223,6 +223,25 @@ nargo execute
 [secret_word_puzzle] Witness saved to target/secret_word_puzzle.gz
 ```
 
+## Attempt at verification
+cd /mnt/c/code/Noirlang-Experiments/private_limit_orders
+npm i -D @aztec/bb.js@0.87.0 source-map-support
+nargo compile
+node ./node_modules/@aztec/bb.js/dest/node/main.js write_vk_ultra_honk -b ./target/private_limit_orders.json -o ./target/vk
+node ./node_modules/@aztec/bb.js/dest/node/main.js prove_ultra_honk -b ./target/private_limit_orders.json -w ./target/private_limit_orders.gz -o ./target/proof
+node ./node_modules/@aztec/bb.js/dest/node/main.js proof_as_fields_honk   -p ./target/proof -o ./tmp/test.json
+xxd -p vk | tr -d '\n' > vk.hex
+xxd -p proof | tr -d '\n' > proof.hex
+// input variable found in Verifier.toml
+python3 -c 'print((100).to_bytes(32, "little").hex())'
+cd ../ultrahonk_soroban_contract
+stellar contract build
+stellar contract deploy --source-account james --wasm target/wasm32v1-none/release/ultrahonk_soroban_contract.wasm --network testnet -- --vk_bytes "$(xxd -p ../private_limit_orders/target/vk | tr -d '\n')"
+
+stellar contract invoke --source-account james --id CBWXFAFVRLPC3QGPXZDQYSASRR7WP3FVWVK3XXCW4JA7QAKK7A5JXHXT --network testnet -- verify_proof --public-inputs "$(python3 -c 'print((100).to_bytes(32, "little").hex())')" --proof-bytes "$(xxd -p ../private_limit_orders/target/proof | tr -d '\n')"
+
+
+
 ---
 ## License
 
