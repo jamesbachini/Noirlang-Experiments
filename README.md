@@ -223,7 +223,7 @@ nargo execute
 [secret_word_puzzle] Witness saved to target/secret_word_puzzle.gz
 ```
 
-## Verified end-to-end (Noir -> UltraHonk Soroban)
+## Noir > bb.js > UltraHonk > Soroban Attempts
 
 ```bash
 cd /mnt/c/code/Noirlang-Experiments/private_limit_orders
