@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage:
-#   ./run.sh
-#
-# Assumes:
-# - You're running from anywhere (script uses absolute-ish repo-relative cd paths below)
-# - `stellar` CLI is installed and configured with a "james" identity + testnet network settings
-# - `nargo`, `npm`, `node`, and `python3` are available
-
 ROOT="/mnt/c/code/Noirlang-Experiments"
 LIMIT_ORDERS_DIR="$ROOT/private_limit_orders"
 CONTRACT_DIR="$ROOT/ultrahonk_soroban_contract"
