@@ -67,7 +67,7 @@ stellar contract invoke \
   --source-account james \
   --id "$CID" \
   --network testnet \
-  --send no \
+  --send yes \
   -- \
   verify_proof \
   --public_inputs-file-path ../private_limit_orders/target/public_inputs \
