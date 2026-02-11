@@ -48,7 +48,7 @@ echo "==> 4) cd $CONTRACT_DIR"
 cd "$CONTRACT_DIR"
 
 echo "==> Build + deploy contract with VK bytes"
-stellar contract build --optimize
+stellar contract build
 
 CID="$(
   stellar contract deploy \
