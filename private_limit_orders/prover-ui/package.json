@@ -1,0 +1,19 @@
+{
+  "name": "private-limit-orders-prover-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --strictPort --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --strictPort --port 4173",
+    "sync:circuit": "mkdir -p public/circuits && cp ../target/private_limit_orders.json public/circuits/private_limit_orders.json"
+  },
+  "dependencies": {
+    "@aztec/bb.js": "0.87.0",
+    "@noir-lang/noir_js": "1.0.0-beta.9"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0"
+  }
+}

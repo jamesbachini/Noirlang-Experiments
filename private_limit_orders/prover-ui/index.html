@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ultrahonk Proof Generator</title>
+  </head>
+  <body>
+    <div class="bg-layer"></div>
+    <main class="page">
+      <header class="hero card fade-in">
+        <p class="eyebrow">NOIR + BB.JS</p>
+        <h1>Ultrahonk Proof Generator</h1>
+        <p>
+          Generate an UltraHonk proof in-browser, then copy paste-ready hex for
+          <code>public_inputs</code> and <code>proof</code>.
+        </p>
+      </header>
+
+      <section class="grid">
+        <article class="card panel slide-up">
+          <h2>Inputs</h2>
+          <p class="muted">Form fields are generated from the circuit ABI.</p>
+          <form id="inputsForm" class="inputs-form"></form>
+
+          <div class="runtime-controls">
+            <label for="threadsSelect">Prover threads</label>
+            <select id="threadsSelect"></select>
+            <p id="threadHint" class="muted tiny"></p>
+          </div>
+
+          <div class="actions">
+            <button id="proveBtn" class="btn-primary" type="button">Generate Proof</button>
+          </div>
+
+          <p id="status" class="status">Loading circuit artifact...</p>
+        </article>
+
+        <article class="card panel slide-up delay-1">
+          <h2>Runtime Telemetry</h2>
+          <div class="stats" id="stats"></div>
+        </article>
+      </section>
+
+      <section class="card panel slide-up delay-2">
+        <div class="outputs-header">
+          <h2>Hex Outputs</h2>
+          <p class="muted">No prefix, no newlines, ready to paste in your online IDE.</p>
+        </div>
+
+        <div class="output-block">
+          <div class="output-meta">
+            <h3>public_inputs (hex)</h3>
+            <button class="btn-secondary" data-copy-target="publicHex">Copy</button>
+          </div>
+          <textarea id="publicHex" readonly placeholder="Proof output will appear here"></textarea>
+        </div>
+
+        <div class="output-block">
+          <div class="output-meta">
+            <h3>proof (hex)</h3>
+            <button class="btn-secondary" data-copy-target="proofHex">Copy</button>
+          </div>
+          <textarea id="proofHex" readonly placeholder="Proof output will appear here"></textarea>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
