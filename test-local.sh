@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/mnt/c/code/Noirlang-Experiments"
+ROOT="$(cd "$(dirname "$0")" && pwd)"
 LIMIT_ORDERS_DIR="$ROOT/private_limit_orders"
 CONTRACT_DIR="$ROOT/rs-soroban-ultrahonk"
 
-echo "==> 0) cd $LIMIT_ORDERS_DIR"
+echo "==> 0) Clean artifacts"
+rm -rf "$LIMIT_ORDERS_DIR/target"
+rm -rf "$CONTRACT_DIR/target"
+
+echo "==> 1) cd $LIMIT_ORDERS_DIR"
 cd "$LIMIT_ORDERS_DIR"
 
-echo "==> 1) Build circuit + witness"
+echo "==> 2) Build circuit + witness"
 npm i -D @aztec/bb.js@0.87.0 source-map-support
 nargo compile
 nargo execute
 
-echo "==> 2) Generate UltraHonk (keccak) VK + proof"
+echo "==> 3) Generate UltraHonk (keccak) VK + proof"
 BBJS="./node_modules/@aztec/bb.js/dest/node/main.js"
 
 node "$BBJS" write_vk_ultra_keccak_honk \
@@ -25,8 +29,16 @@ node "$BBJS" prove_ultra_keccak_honk \
   -w ./target/private_limit_orders.gz \
   -o ./target/proof.with_public_inputs
 
-echo "==> 3) Split proof into public_inputs + proof bytes"
-PUB_COUNT="$(node -e 'const fs=require("fs"); const j=JSON.parse(fs.readFileSync("target/private_limit_orders.json","utf8")); process.stdout.write(String((j.abi?.parameters||[]).filter(p=>p.visibility==="public").length));')"
+echo "==> 4) Split proof into public_inputs + proof bytes"
+PUB_COUNT="$(node -e "
+  const c = require('./target/private_limit_orders.json');
+  let n = 0;
+  for (const p of c.abi.parameters.filter(p => p.visibility === 'public')) {
+    if (p.type.kind === 'array') n += p.type.length;
+    else n += 1;
+  }
+  process.stdout.write(String(n));
+")"
 PUB_BYTES=$((PUB_COUNT * 32))
 
 head -c "$PUB_BYTES" target/proof.with_public_inputs > target/public_inputs
@@ -44,31 +56,41 @@ print("public_inputs_len:", len(b))
 print("public_input_be:", int.from_bytes(b, "big"))
 PY
 
-echo "==> 4) cd $CONTRACT_DIR"
+echo "==> 5) cd $CONTRACT_DIR"
 cd "$CONTRACT_DIR"
 
 echo "==> Build + deploy contract with VK bytes"
-stellar contract build
+stellar contract build --optimize
 
 CID="$(
   stellar contract deploy \
-    --source-account james \
     --wasm target/wasm32v1-none/release/rs_soroban_ultrahonk.wasm \
-    --network testnet \
+    --network local \
     -- \
-    --vk_bytes-file-path ../private_limit_orders/target/vk \
+    --vk_bytes-file-path "$LIMIT_ORDERS_DIR/target/vk" \
   | tail -n1
 )"
 
 echo "==> Deployed CID: $CID"
 
-echo "==> 5) Verify proof with raw byte files (no send)"
+echo "==> 6) Verify proof (simulation, --send no)"
 stellar contract invoke \
-  --source-account james \
   --id "$CID" \
-  --network testnet \
+  --network local \
+  --send no \
+  -- \
+  verify_proof \
+  --public_inputs-file-path "$LIMIT_ORDERS_DIR/target/public_inputs" \
+  --proof_bytes-file-path "$LIMIT_ORDERS_DIR/target/proof"
+
+echo "==> 7) Verify proof on-chain (--send yes)"
+stellar contract invoke \
+  --id "$CID" \
+  --network local \
   --send yes \
   -- \
   verify_proof \
-  --public_inputs-file-path ../private_limit_orders/target/public_inputs \
-  --proof_bytes-file-path ../private_limit_orders/target/proof
+  --public_inputs-file-path "$LIMIT_ORDERS_DIR/target/public_inputs" \
+  --proof_bytes-file-path "$LIMIT_ORDERS_DIR/target/proof"
+
+echo "==> Done! On-chain verification succeeded."
