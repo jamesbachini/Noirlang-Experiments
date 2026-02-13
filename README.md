@@ -1,5 +1,7 @@
 # Noirlang Experiments
 
+Full tutorial here: https://jamesbachini.com/noir-on-stellar/?dpl_token=94e608d9-2c24-488f-af74-315ddbb7f0a1
+
 ### Private Limit Orders • Secret Word Puzzle • Strong Password Proofs
 
 This repo contains three practical **Noir** circuits illustrating core ZK techniques: comparisons, hashing, commitments, byte checks, array iteration, and constraint design.
